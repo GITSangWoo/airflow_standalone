@@ -12,43 +12,34 @@ def gen_emp(id, rule="all_success"):
 
 
 with DAG(
-    'MakeParquet',
+    'Movie',
     default_args={
         'depends_on_past':False,
         'retries': 1,
-        'retry_delay': timedelta(seconds=3)
+        'retry_delay': timedelta(minutes=3)
     },
     description='Making Parquet DAG',
     schedule="10 4 * * *",
-    start_date=datetime(2024, 7, 10),
+    start_date=datetime(2024, 7, 24),
     catchup=True,
-    tags=['simple','bash','etl','shop','db','history'],
+    tags=['movie'],
 ) as dag:
-     task_check = BashOperator(
-        task_id="check",
+     task_get = BashOperator(
+        task_id="get_data",
         bash_command="""
-            echo "check"
-            DONE_FILE={{var.value.TOBASE_DONE}}/{{ds_nodash}}/_DONE
-            bash {{ var.value.BASECHECK_SH }} $DONE_FILE  
+            echo "get"
         """
      )
-     task_parquet = BashOperator(
-        task_id="parquet",
+     task_save = BashOperator(
+        task_id="save_data",
         bash_command="""
-            echo "parquet"
-            READ_PATH="~/data/csv/{{ds_nodash}}/csv.csv"
-            SAVE_PATH="~/tmp/partition_parquet"
-            python ~/airflow/py/csv2parquet.py $READ_PATH $SAVE_PATH
+            echo "save"
         """
      )
      task_done = BashOperator(
         task_id="make_done",
         bash_command="""
             echo "done"
-            DONE_PATH=~/data/parquet_done/{{ds_nodash}}
-            echo "$DONEPATH"
-            mkdir -p ${DONE_PATH}
-            touch ${DONE_PATH}/_DONE
         """
      )
      
@@ -63,6 +54,4 @@ with DAG(
      task_end = gen_emp('end','all_done')
      task_start = gen_emp('start')
     
-     task_start >> task_check >> task_parquet
-     task_check >> task_err >>  task_end
-     task_parquet >> task_done >> task_end
+     task_start >> task_get >> task_save >> task_end 
