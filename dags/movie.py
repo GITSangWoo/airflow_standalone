@@ -6,7 +6,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.models import Variable
 import pandas as pd 
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator, PythonVirtualenvOperator
 
 def gen_emp(id, rule="all_success"):
     op  = EmptyOperator(task_id=id, trigger_rule=rule)
@@ -50,11 +50,16 @@ with DAG(
         print("::endgroup::")
         return "Whatever you return gets printed in the logs"
    
-    run_this = PythonOperator(task_id="print_the_context", python_callable=print_context)
+    run_this = PythonOperator(
+            task_id="print_the_context",
+            python_callable=print_context,
+    )
     
-    get_data = PythonOperator(
+    get_data = PythonVirtualenvOperator(
         task_id="get_data",
-        python_callable=get_data
+        python_callable=get_data,
+        requirements=["git+https://github.com/GITSangWoo/movie.git@0.2/api"],
+        system_site_packages=False,
      )
 
     task_save = BashOperator(
