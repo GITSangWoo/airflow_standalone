@@ -33,7 +33,7 @@ with DAG(
         df=save2df(ds_nodash)
         print(df.head(5))    
 
-     def fun_multi(ds_nodash,args):
+     def fun_multi(ds_nodash,**args):
          from mov.api.call import get_key,save2df
          df = save2df(load_dt=ds_nodash, url_param=args)
          print(df.head(3))
