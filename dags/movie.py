@@ -28,12 +28,14 @@ with DAG(
     catchup=True,
     tags=['api','movie','ant'],
 ) as dag:
-        
      def get_data(ds_nodash):
+        from movie.api.call import save2df
+        df=save2df(ds_nodash)
+        print(df.head(5))    
+
+     def fun_multi(ds_nodash,args):
          from mov.api.call import get_key,save2df
-         key = get_key()
-         print(f"MOVIE_API_KEY => {key}")
-         df = save2df(ds_nodash)
+         df = save2df(load_dt=ds_nodash, url_part=args)
          print(df.head(3))
 
      def save_data(ds_nodash):
@@ -60,6 +62,7 @@ with DAG(
          else:
              return "get_data","echo_task"
 
+
      branch_op = BranchPythonOperator(
         task_id="branch.op",
         python_callable=branch_fun,
@@ -83,6 +86,40 @@ with DAG(
          trigger_rule='one_success',
          # venv_cache_path="/home/centa/tmp/air_venv/get_data"
      )
+     # 영화 다양성 유무
+     multi_y = PythonVirtualenvOperator(
+        task_id='multi.y',
+        python_callable=fun_multi,
+        system_site_packages=False,
+        op_args=["{{ds_nodash}}"],
+        op_kwargs={"multiMovieYn": "Y"},
+        requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
+     )
+     multi_n = PythonVirtualenvOperator(
+        task_id='multi.n',
+        python_callable=fun_multi,
+        system_site_packages=False,
+        op_args=["{{ds_nodash}}"],
+        op_kwargs={"multiMovieYn": "N"},
+        requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
+     )
+     # 한국 영화 구분
+     nation_k = PythonVirtualenvOperator(
+        task_id='nation.k',
+        python_callable=fun_multi,
+        system_site_packages=False,
+        op_args=["{{ds_nodash}}"],
+        op_kwargs={"repNationCd": "K"},
+        requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
+     )
+     nation_f = PythonVirtualenvOperator(
+        task_id='nation.f',
+        python_callable=fun_multi,
+        system_site_packages=False,
+        op_args=["{{ds_nodash}}"],
+        op_kwargs={"repNationCd": "F"},
+        requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
+     )
 
      rm_dir = BashOperator(
          task_id='rm_dir',
@@ -97,10 +134,6 @@ with DAG(
      task_end = gen_emp('end','all_done')
      task_start = gen_emp('start')
 
-     multi_y = EmptyOperator(task_id='multi.y') # 다양성 영화 유무 
-     multi_n = EmptyOperator(task_id='multi.n')
-     nation_k = EmptyOperator(task_id='nation.k')# 한국외국영화 구분
-     nation_f = EmptyOperator(task_id='nation.f')
      
      get_start=EmptyOperator(
              task_id='get_start',
