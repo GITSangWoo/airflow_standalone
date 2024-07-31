@@ -101,7 +101,10 @@ with DAG(
      multi_n = EmptyOperator(task_id='multi.n')
      nation_k = EmptyOperator(task_id='nation.k')# 한국외국영화 구분
      nation_f = EmptyOperator(task_id='nation.f')
-    
+     
+     get_start=EmptyOperator(task_id='get_start',trigger_rule='one_success')   
+     get_end= EmptyOperator(task_id='get_end')
+
      join_task = BashOperator(
         task_id ='join',
         bash_command="exit 1",
@@ -109,10 +112,10 @@ with DAG(
      ) 
         
      task_start >> branch_op 
-     task_start >> join_task >> task_save
+     task_start >> join_task >> get_start
      
-     branch_op >> rm_dir >> [get_data, multi_y, multi_n, nation_k, nation_f] 
-     branch_op >> [get_data, multi_y, multi_n, nation_k, nation_f]
-     branch_op >> echo_task >> task_save 
-
-     [get_data, multi_y, multi_n, nation_k, nation_f] >> task_save >> task_end
+     branch_op >> rm_dir >> get_start>> [get_data, multi_y, multi_n, nation_k, nation_f] >> get_end
+    
+     branch_op >> echo_task >> get_start 
+     branch_op >> get_start
+     get_end >> task_save >> task_end
