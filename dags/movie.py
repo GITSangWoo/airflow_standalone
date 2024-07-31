@@ -20,11 +20,13 @@ with DAG(
         'retries': 1,
         'retry_delay': timedelta(seconds=3)
     },
-    description='Making Parquet DAG',
-    schedule="10 4 * * *",
+    max_active_tasks=3,
+    max_active_runs=1,
+    description='movie',
+    schedule="10 2 * * *",
     start_date=datetime(2024, 7, 24),
     catchup=True,
-    tags=['movie'],
+    tags=['api','movie','ant'],
 ) as dag:
         
      def get_data(ds_nodash):
@@ -94,18 +96,23 @@ with DAG(
      
      task_end = gen_emp('end','all_done')
      task_start = gen_emp('start')
+
+     multi_y = EmptyOperator(task_id='multi.y') # 다양성 영화 유무 
+     multi_n = EmptyOperator(task_id='multi.n')
+     nation_k = EmptyOperator(task_id='nation.k')# 한국외국영화 구분
+     nation_f = EmptyOperator(task_id='nation.f')
+    
      join_task = BashOperator(
         task_id ='join',
         bash_command="exit 1",
         trigger_rule="all_done"
      ) 
-
+        
      task_start >> branch_op 
      task_start >> join_task >> task_save
-
-     branch_op >> rm_dir >> get_data 
-     branch_op >> get_data
-     branch_op >> echo_task >> task_save 
      
+     branch_op >> rm_dir >> [get_data, multi_y, multi_n, nation_k, nation_f] 
+     branch_op >> [get_data, multi_y, multi_n, nation_k, nation_f]
+     branch_op >> echo_task >> task_save 
 
-     get_data >> task_save >> task_end 
+     [get_data, multi_y, multi_n, nation_k, nation_f] >> task_save >> task_end
