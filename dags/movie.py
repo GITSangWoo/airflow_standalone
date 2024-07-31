@@ -29,7 +29,7 @@ with DAG(
     tags=['api','movie','ant'],
 ) as dag:
      def get_data(ds_nodash):
-        from movie.api.call import save2df
+        from mov.api.call import save2df
         df=save2df(ds_nodash)
         print(df.head(5))    
 
