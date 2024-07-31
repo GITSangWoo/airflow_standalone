@@ -35,7 +35,7 @@ with DAG(
 
      def fun_multi(ds_nodash,args):
          from mov.api.call import get_key,save2df
-         df = save2df(load_dt=ds_nodash, url_part=args)
+         df = save2df(load_dt=ds_nodash, url_param=args)
          print(df.head(3))
 
      def save_data(ds_nodash):
