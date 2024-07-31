@@ -33,7 +33,7 @@ with DAG(
         df=save2df(ds_nodash)
         print(df.head(5))    
 
-     def fun_multi(ds_nodash,**args):
+     def fun_multi(ds_nodash,args):
          from mov.api.call import get_key,save2df
          df = save2df(load_dt=ds_nodash, url_param=args)
          print(df.head(3))
@@ -91,16 +91,14 @@ with DAG(
         task_id='multi.y',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_args=["{{ds_nodash}}"],
-        op_kwargs={"multiMovieYn": "Y"},
+        op_kwargs={"args":{"multiMovieYn": "Y"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      multi_n = PythonVirtualenvOperator(
         task_id='multi.n',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_args=["{{ds_nodash}}"],
-        op_kwargs={"multiMovieYn": "N"},
+        op_kwargs={"args":{"multiMovieYn": "N"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      # 한국 영화 구분
@@ -108,16 +106,14 @@ with DAG(
         task_id='nation.k',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_args=["{{ds_nodash}}"],
-        op_kwargs={"repNationCd": "K"},
+        op_kwargs={"args":{"multiMovieYn": "Y"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      nation_f = PythonVirtualenvOperator(
         task_id='nation.f',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_args=["{{ds_nodash}}"],
-        op_kwargs={"repNationCd": "F"},
+        op_kwargs={"args":{"multiMovieYn": "Y"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
 
