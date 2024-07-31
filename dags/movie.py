@@ -106,14 +106,14 @@ with DAG(
         task_id='nation.k',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"multiMovieYn": "Y"}},
+        op_kwargs={"args":{"repNationCd": "K"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      nation_f = PythonVirtualenvOperator(
         task_id='nation.f',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"multiMovieYn": "Y"}},
+        op_kwargs={"args":{"repNationCd": "F"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
 
