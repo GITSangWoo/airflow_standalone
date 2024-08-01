@@ -19,7 +19,7 @@ with DAG(
     schedule = "10 4 * * *",
     start_date=datetime(2024, 7, 20),
     catchup=True,
-    tags=['movie', 'summary', 'etl', 'shop'],
+    tags=['movie', 'summary', 'api' ],
 ) as dag:
     def apply_data():
         return 0
