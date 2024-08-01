@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from textwrap import dedent
-from pprint import pprint
-
+from pprint import pprint as pp
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
@@ -21,33 +20,89 @@ with DAG(
     catchup=True,
     tags=['movie', 'summary', 'api' ],
 ) as dag:
-    def apply_data():
-        return 0
-    def merge_data():
-        return 0
-    def dedup_data():
-        return 0
-    def summary_data():
-        return 0
+    
+    REQUIREMENTS = ["git+https://github.com/GITSangWoo/mov_agg.git@0.5/agg"]
+    
+    # def gen_empty(id):
+    def gen_empty(*ids):
+        tasks=[]
+        for id in ids:
+            task = EmptyOperator(task_id=id)
+            tasks.append(task)
+        return tuple(tasks) # 튜플 사용법 알려주려고
 
-    start = EmptyOperator(task_id="start")
-    end = EmptyOperator(task_id="end")
+    # def gen_vpython(id, fun_obj, op_kwargs):
+    def gen_vpython(**kw):
+        task = PythonVirtualenvOperator(
+               task_id = kw['id'],
+               python_callable = kw['fun_obj'], 
+               system_site_packages = False,
+               requirements = REQUIREMENTS,
+               op_kwargs=kw['op_kwargs'],
+               #op_kwargs={
+               #    "url_param" : {"multiMovieYn":"Y"},
+               #     }
+               )
+        return task
 
-    apply_type = PythonVirtualenvOperator(
-        task_id = "apply.df",
-        python_callable = apply_data
+    # def pro_data(ds_nodash, url_param):
+
+    def pro_data(**params):
+        print("@" * 33)
+        print(params['task_name'])
+        print("@" * 33)
+
+    def pro_merge(task_name, **params):
+        load_dt =params['ds_nodash']
+        from mov_agg.u2 import merge
+        df = merge(load_dt)
+        print("*" * 33)
+        print(df)
+        print("*" * 33)
+
+
+    
+    def pro_data3(task_name):
+        print("@" * 33)
+        print(task_name)
+        print("@" * 33)
+    
+    def pro_data4(task_name,ds_nodash,**kwargs):
+        print("@" * 33)
+        print(task_name)
+        print(ds_nodash)
+        print("@" * 33)
+
+
+    
+    #  start,end = gen_empty('start')
+    # end = gen_empty('end')
+    start, end = gen_empty('start','end')
+    
+    apply_type = gen_vpython(
+        id='apply.type',
+        fun_obj = pro_data,
+        op_kwargs ={ "task_name" : "apply_type!!!"}
     )
-    merge_df = PythonVirtualenvOperator(
-        task_id = "merge.df",
-        python_callable = merge_data
+
+    merge_df = gen_vpython( 
+        id='merge.df',
+        fun_obj = pro_merge,
+        op_kwargs ={ "task_name" : "merge_df!!!"}
     )
-    de_dup = PythonVirtualenvOperator(
-        task_id = "dedup.df",
-        python_callable = dedup_data
+
+    de_dup = gen_vpython( 
+        id='de.dup',
+        fun_obj = pro_data3,
+        op_kwargs ={ "task_name" : "de_dup!!!"}
     )
-    summary_df = PythonVirtualenvOperator(
-        task_id = "summary.df",
-        python_callable = summary_data
+
+    summary_df = gen_vpython(
+        id='summary.df',
+        fun_obj = pro_data4,
+        op_kwargs ={ "task_name" : "summary_df!!!"}
     )
       
-    start >> apply_type >> merge_df >> de_dup >> summary_df >> end    
+    start >> merge_df 
+    merge_df >> de_dup >> apply_type 
+    apply_type >> summary_df >> end    
