@@ -29,14 +29,20 @@ with DAG(
     tags=['api','movie','ant'],
 ) as dag:
      def get_data(ds_nodash):
-        from mov.api.call import save2df
+        from mov.api.call import save2df 
         df=save2df(ds_nodash)
         print(df.head(5))    
 
-     def fun_multi(ds_nodash,args):
-         from mov.api.call import get_key,save2df
-         df = save2df(load_dt=ds_nodash, url_param=args)
-         print(df.head(3))
+     def fun_multi(ds_nodash, url_param):
+         from mov.api.call import save2df
+         df = save2df(load_dt=ds_nodash, url_param=url_param)
+         print(df[['movieCd','movieNm']].head(5))
+         
+         for k,v in url_param.items():
+            df[k] = v
+
+         p_cols = ['load_dt'] + list(url_param.keys())
+         df.to_parquet('~/tmp/test_parquet', partition_cols=p_cols)
 
      def save_data(ds_nodash):
          from mov.api.call import apply_type2df
@@ -60,7 +66,7 @@ with DAG(
          if  os.path.exists(path):
              return "rm_dir"
          else:
-             return "get_data","echo_task"
+             return "get_start","echo_task"
 
 
      branch_op = BranchPythonOperator(
@@ -77,6 +83,7 @@ with DAG(
          trigger_rule='all_done',
          # venv_cache_path="/home/centa/tmp/air_venv/get_data"
      )
+     
 
      task_save = PythonVirtualenvOperator(
          task_id="save_data",
@@ -91,14 +98,14 @@ with DAG(
         task_id='multi.y',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"multiMovieYn": "Y"}},
+        op_kwargs={"url_param":{"multiMovieYn": "Y"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      multi_n = PythonVirtualenvOperator(
         task_id='multi.n',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"multiMovieYn": "N"}},
+        op_kwargs={"url_param":{"multiMovieYn": "N"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      # 한국 영화 구분
@@ -106,14 +113,14 @@ with DAG(
         task_id='nation.k',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"repNationCd": "K"}},
+        op_kwargs={"url_param":{"repNationCd": "K"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
      nation_f = PythonVirtualenvOperator(
         task_id='nation.f',
         python_callable=fun_multi,
         system_site_packages=False,
-        op_kwargs={"args":{"repNationCd": "F"}},
+        op_kwargs={"url_param":{"repNationCd": "F"}},
         requirements=["git+https://github.com/GITSangWoo/movie.git@0.3/api"],
      )
 
