@@ -28,36 +28,60 @@ with DAG(
      )
 
      task_csv = BashOperator(
-        task_id="to_csv",
+        task_id="to.csv",
         bash_command="""
-            echo "to_csv"
-            C_PATH=~/data/count/{{ds_nodash}}/count.log
+            echo "to.csv"
+
+            U_PATH=~/data/count/{{ds_nodash}}/count.log
             CSV_PATH=~/data/csv/{{ds_nodash}}
+            CSV_FILE=~/data/csv/{{ds_nodash}}/csv.csv
 
-            mkdir -p ${CSV_PATH}
+            mkdir -p $CSV_PATH
 
-            cat ${C_PATH} | awk '{print "{{ds}}," $2 "," $1}' > ${CSV_PATH}/csv.csv
-        """
+            # cat $U_PATH | awk '{print "\\"{{ds}}\\",\\"" $2 "\\",\\"" $1 "\\""}' > ${CSV_FILE}
+            cat $U_PATH | awk '{print "^{{ds}}^,^" $2 "^,^" $1 "^"}' > ${CSV_FILE}
+            echo $CSV_PATH
+            """
      )
+
+     
+
+     task_create_table = BashOperator(
+        task_id='create_table',
+        bash_command="""
+            SQL={{ var.value.SQL_PATH }}/create_db_table.sql
+            echo "SQL_PATH=${SQL}"
+            MYSQL_PWD='{{ var.value.DB_PASSWD }}' mysql -u root < ${SQL}
+        """
+        )
+
 
      task_tmp = BashOperator(
         task_id="to_tmp",
         bash_command="""
-            echo "tmp"
+            echo "to_tmp"
+            CSV_PATH=~/data/csv/{{ds_nodash}}/csv.csv
+            bash {{var.value.SH_HOME}}/cvs2mysql.sh ${CSV_PATH} {{ds}}
         """
-     )
+        )  
 
      task_base = BashOperator(
         task_id="to_base",
         bash_command="""
             echo "base"
+            bash {{ var.value.SH_HOME }}/tmp2base.sh {{ds}} 
         """
      )
 
      task_done = BashOperator(
         task_id="make_done",
         bash_command="""
-            echo "done"
+            figlet "make.done.start"
+            DONE_PATH={{var.value.TOBASE_DONE}}/{{ds_nodash}}
+            echo "$DONEPATH"
+            mkdir -p ${DONE_PATH}
+            touch ${DONE_PATH}/_DONE
+            figlet "make.done.end"
         """
      )
      task_end = EmptyOperator(
@@ -74,5 +98,5 @@ with DAG(
 
      task_start >> task_check >> task_csv 
      task_check >> task_err >> task_end
-     task_csv >> task_tmp >> task_base 
+     task_csv >> task_create_table >> task_tmp >> task_base 
      task_base >> task_done >> task_end
